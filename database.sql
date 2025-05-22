@@ -1,9 +1,3 @@
--- Видаляємо всі дані з таблиць
-TRUNCATE TABLE game_moves;
-TRUNCATE TABLE active_players;
-TRUNCATE TABLE games;
-TRUNCATE TABLE players;
-
 -- Видаляємо старі таблиці, якщо вони існують
 DROP TABLE IF EXISTS game_moves;
 DROP TABLE IF EXISTS active_players;
@@ -13,7 +7,7 @@ DROP TABLE IF EXISTS players;
 -- Створення таблиці гравців
 CREATE TABLE players (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL,
+    username VARCHAR(50) NOT NULL UNIQUE,
     is_active BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -43,16 +37,16 @@ CREATE TABLE game_moves (
     id INT AUTO_INCREMENT PRIMARY KEY,
     game_id INT NOT NULL,
     player_id INT NOT NULL,
-    round_number INT NOT NULL DEFAULT 1,
     kronus INT NOT NULL,
     lyrion INT NOT NULL,
     mystara INT NOT NULL,
     eclipsia INT NOT NULL,
     fiora INT NOT NULL,
+    score INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE,
     FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE,
-    UNIQUE KEY unique_player_round (game_id, player_id, round_number)
+    UNIQUE KEY unique_player_move (game_id, player_id)
 );
 
 -- Створення індексів для оптимізації запитів

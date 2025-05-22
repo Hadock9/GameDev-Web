@@ -60,20 +60,14 @@ try {
     $stmt = $pdo->prepare("INSERT INTO active_players (game_id, player_id) VALUES (?, ?)");
     $stmt->execute([$game_id, $player_id]);
 
-    // Перевіряємо чи гра заповнена
-    $stmt = $pdo->prepare("
-        SELECT COUNT(*) as player_count 
-        FROM active_players 
-        WHERE game_id = ?
-    ");
+    // Перевіряємо, чи гра заповнена
+    $stmt = $pdo->prepare("SELECT COUNT(*) as player_count FROM active_players WHERE game_id = ?");
     $stmt->execute([$game_id]);
-    $playerCount = $stmt->fetch(PDO::FETCH_ASSOC)['player_count'];
-
-    $isGameFull = $playerCount >= 4;
-
-    if ($isGameFull) {
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($row['player_count'] >= 2) {
         // Оновлюємо статус гри на 'in_progress'
-        $stmt = $pdo->prepare("UPDATE games SET status = 'in_progress', started_at = CURRENT_TIMESTAMP WHERE id = ?");
+        $stmt = $pdo->prepare("UPDATE games SET status = 'in_progress' WHERE id = ?");
         $stmt->execute([$game_id]);
     }
 

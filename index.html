@@ -78,6 +78,23 @@
 			.section {
 				margin-bottom: 32px;
 			}
+			.result-item {
+				border: 1px solid #ccc;
+				padding: 10px;
+				margin: 10px 0;
+				border-radius: 5px;
+			}
+			.result-item h3 {
+				margin-top: 0;
+				color: #333;
+			}
+			.result-item ul {
+				list-style-type: none;
+				padding-left: 0;
+			}
+			.result-item li {
+				margin: 5px 0;
+			}
 		</style>
 	</head>
 	<body>
@@ -123,6 +140,11 @@
 				</button>
 			</div>
 			<div class="result" id="result"></div>
+			<div id="results" style="display: none">
+				<h2>Результати раунду</h2>
+				<div id="roundResults"></div>
+				<button onclick="submitMove()">Зробити хід</button>
+			</div>
 		</div>
 		<script>
 			let player_id = null
@@ -186,6 +208,35 @@
 					.catch(e => showResult('Помилка: ' + e))
 			}
 
+			function showResults(results) {
+				const resultsDiv = document.getElementById('roundResults')
+				resultsDiv.innerHTML = ''
+
+				// Сортуємо результати за балами (від більшого до меншого)
+				results.sort((a, b) => b.score - a.score)
+
+				results.forEach((result, index) => {
+					const resultElement = document.createElement('div')
+					resultElement.className = 'result-item'
+					resultElement.innerHTML = `
+						<h3>${result.is_winner ? '🏆 ' : ''}${result.username}</h3>
+						<p>Бали: ${result.score}</p>
+						<p>Дрони:</p>
+						<ul>
+							<li>Kronus: ${result.drones.kronus}</li>
+							<li>Lyrion: ${result.drones.lyrion}</li>
+							<li>Mystara: ${result.drones.mystara}</li>
+							<li>Eclipsia: ${result.drones.eclipsia}</li>
+							<li>Fiora: ${result.drones.fiora}</li>
+						</ul>
+					`
+					resultsDiv.appendChild(resultElement)
+				})
+
+				document.getElementById('game').style.display = 'none'
+				document.getElementById('results').style.display = 'block'
+			}
+
 			function submitMove() {
 				if (!player_id || !game_id) {
 					showResult('Спочатку зареєструйтесь!')
@@ -229,6 +280,14 @@
 					.then(data => {
 						if (data.success) {
 							showResult('Хід збережено!')
+							document.getElementById('results').style.display = 'none'
+							document.getElementById('game').style.display = 'block'
+							// Очищаємо поля вводу
+							document.getElementById('kronus').value = ''
+							document.getElementById('lyrion').value = ''
+							document.getElementById('mystara').value = ''
+							document.getElementById('eclipsia').value = ''
+							document.getElementById('fiora').value = ''
 						} else {
 							showResult(data.message || 'Помилка ходу')
 						}
