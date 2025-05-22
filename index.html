@@ -86,6 +86,8 @@
 			<div class="section">
 				<label for="username">Ім'я гравця</label>
 				<input type="text" id="username" placeholder="Введіть ім'я..." />
+				<label for="gameId">ID гри (залиште пустим для нової гри)</label>
+				<input type="text" id="gameId" placeholder="Введіть ID гри..." />
 				<button onclick="registerPlayer()">Зареєструватися</button>
 			</div>
 			<div class="section">
@@ -134,14 +136,20 @@
 
 			function registerPlayer() {
 				const username = document.getElementById('username').value.trim()
+				const gameId = document.getElementById('gameId').value.trim()
+
 				if (!username) {
 					showResult("Введіть ім'я гравця!")
 					return
 				}
-				fetch(BASE_URL + 'register.php', {
+
+				const endpoint = gameId ? 'join_game.php' : 'register.php'
+				const data = gameId ? { username, game_id: gameId } : { username }
+
+				fetch(BASE_URL + endpoint, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ username }),
+					body: JSON.stringify(data),
 				})
 					.then(r => r.json())
 					.then(data => {

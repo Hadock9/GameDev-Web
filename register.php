@@ -26,6 +26,8 @@ if (!isset($data['username']) || empty(trim($data['username']))) {
 $username = trim($data['username']);
 
 try {
+    $pdo->beginTransaction();
+
     // Перевірка наявності користувача
     $stmt = $pdo->prepare("SELECT id FROM players WHERE username = ?");
     $stmt->execute([$username]);
@@ -41,13 +43,26 @@ try {
     $stmt->execute([$username]);
     $player_id = $pdo->lastInsertId();
 
+    // Створюємо нову гру
+    $stmt = $pdo->prepare("INSERT INTO games () VALUES ()");
+    $stmt->execute();
+    $game_id = $pdo->lastInsertId();
+
+    // Додаємо гравця до гри
+    $stmt = $pdo->prepare("INSERT INTO active_players (game_id, player_id) VALUES (?, ?)");
+    $stmt->execute([$game_id, $player_id]);
+
+    $pdo->commit();
+
     echo json_encode([
         'success' => true,
         'player_id' => $player_id,
-        'message' => 'Player registered successfully'
+        'game_id' => $game_id,
+        'message' => 'Player registered and game session created successfully'
     ]);
 
 } catch (PDOException $e) {
+    $pdo->rollBack();
     http_response_code(500);
     echo json_encode([
         'error' => 'Registration failed',
