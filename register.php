@@ -1,6 +1,9 @@
 <?php
 header('Content-Type: application/json');
+
 require_once 'config.php';
+
+$rawPostData = file_get_contents('php://input');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -8,37 +11,47 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$data = json_decode(file_get_contents('php://input'), true);
+$data = json_decode($rawPostData, true);
 
-if (!isset($data['username']) || empty($data['username'])) {
+if (!isset($data['username']) || empty(trim($data['username']))) {
     http_response_code(400);
-    echo json_encode(['error' => 'Username is required']);
+    echo json_encode([
+        'error' => 'Username is required',
+        'received_raw_data' => $rawPostData,
+        'received_decoded_data' => $data
+    ]);
     exit;
 }
 
-$username = $conn->real_escape_string($data['username']);
+$username = trim($data['username']);
 
-// Check if username already exists
-$check = $conn->query("SELECT id FROM players WHERE username = '$username'");
-if ($check->num_rows > 0) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Username already exists']);
-    exit;
-}
+try {
+    // Перевірка наявності користувача
+    $stmt = $pdo->prepare("SELECT id FROM players WHERE username = ?");
+    $stmt->execute([$username]);
 
-// Insert new player
-$sql = "INSERT INTO players (username) VALUES ('$username')";
-if ($conn->query($sql) === TRUE) {
-    $player_id = $conn->insert_id;
+    if ($stmt->fetch()) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Username already exists']);
+        exit;
+    }
+
+    // Додавання користувача
+    $stmt = $pdo->prepare("INSERT INTO players (username) VALUES (?)");
+    $stmt->execute([$username]);
+    $player_id = $pdo->lastInsertId();
+
     echo json_encode([
         'success' => true,
         'player_id' => $player_id,
         'message' => 'Player registered successfully'
     ]);
-} else {
-    http_response_code(500);
-    echo json_encode(['error' => 'Registration failed']);
-}
 
-$conn->close();
-?> 
+} catch (PDOException $e) {
+    http_response_code(500);
+    echo json_encode([
+        'error' => 'Registration failed',
+        'details' => $e->getMessage()
+    ]);
+}
+?>
