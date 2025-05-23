@@ -24,6 +24,7 @@ if (!isset($data['username']) || empty(trim($data['username']))) {
 }
 
 $username = trim($data['username']);
+$game_id = isset($data['game_id']) ? (int)$data['game_id'] : null;
 
 try {
     $pdo->beginTransaction();
@@ -33,23 +34,56 @@ try {
     $stmt->execute([$username]);
     $player_id = $pdo->lastInsertId();
 
-    // Створюємо нову гру
-    $stmt = $pdo->prepare("INSERT INTO games () VALUES ()");
-    $stmt->execute();
-    $game_id = $pdo->lastInsertId();
+    if ($game_id !== null) {
+        // Joining an existing game
+        $stmt = $pdo->prepare("SELECT game_id FROM games WHERE game_id = ?");
+        $stmt->execute([$game_id]);
+        $game = $stmt->fetch();
 
-    // Додаємо гравця до гри
-    $stmt = $pdo->prepare("INSERT INTO active_players (game_id, player_id) VALUES (?, ?)");
-    $stmt->execute([$game_id, $player_id]);
+        if (!$game) {
+            $pdo->rollBack();
+            http_response_code(404);
+            echo json_encode([
+                'error' => 'Game not found',
+                'game_id' => $game_id
+            ]);
+            exit;
+        }
+        
+        // TODO: Add more checks here if needed (e.g., if game is full, if game has started)
 
-    $pdo->commit();
+        // Додаємо гравця до гри
+        $stmt = $pdo->prepare("INSERT INTO active_players (game_id, player_id) VALUES (?, ?)");
+        $stmt->execute([$game_id, $player_id]);
 
-    echo json_encode([
-        'success' => true,
-        'player_id' => $player_id,
-        'game_id' => $game_id,
-        'message' => 'Player registered and game session created successfully'
-    ]);
+        $pdo->commit();
+
+        echo json_encode([
+            'success' => true,
+            'player_id' => $player_id,
+            'game_id' => $game_id,
+            'message' => 'Player registered and joined existing game successfully'
+        ]);
+
+    } else {
+        // Creating a new game
+        $stmt = $pdo->prepare("INSERT INTO games () VALUES ()");
+        $stmt->execute();
+        $new_game_id = $pdo->lastInsertId();
+
+        // Додаємо гравця до нової гри
+        $stmt = $pdo->prepare("INSERT INTO active_players (game_id, player_id) VALUES (?, ?)");
+        $stmt->execute([$new_game_id, $player_id]);
+
+        $pdo->commit();
+
+        echo json_encode([
+            'success' => true,
+            'player_id' => $player_id,
+            'game_id' => $new_game_id,
+            'message' => 'Player registered and new game session created successfully'
+        ]);
+    }
 
 } catch (PDOException $e) {
     $pdo->rollBack();

@@ -42,8 +42,8 @@ try {
         exit();
     }
 
-    // Якщо є 2 гравці і гра в статусі очікування, оновлюємо статус
-    if ($game['players_count'] >= 2 && $game['status'] === 'waiting') {
+    // Якщо є 4 гравці і гра в статусі очікування, оновлюємо статус
+    if ($game['players_count'] >= 4 && $game['status'] === 'waiting') {
         $stmt = $pdo->prepare("
             UPDATE games 
             SET status = 'in_progress', started_at = CURRENT_TIMESTAMP 

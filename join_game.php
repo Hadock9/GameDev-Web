@@ -41,11 +41,11 @@ try {
     }
 
     // Перевіряємо чи гра існує і має місце
-    $stmt = $pdo->prepare("
-        SELECT g.id, g.status, COUNT(ap.id) as player_count
+    $stmt = $pdo->prepare("SELECT 
+        g.id, g.status, COUNT(ap.id) as player_count
         FROM games g
         LEFT JOIN active_players ap ON g.id = ap.game_id
-        WHERE g.id = ? AND g.status = 'waiting'
+        WHERE g.id = ? AND (g.status = 'waiting' OR g.status = 'in_progress')
         GROUP BY g.id
         HAVING player_count < 4
     ");
