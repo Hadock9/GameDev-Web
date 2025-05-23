@@ -26,11 +26,18 @@ try {
     // Перевірка наявності користувача
     $stmt = $pdo->prepare("SELECT id FROM players WHERE username = ?");
     $stmt->execute([$username]);
+    $player = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($stmt->fetch()) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Username already exists']);
-        exit;
+    $player_id = null;
+
+    if ($player) {
+        // Гравець існує, використовуємо його ID
+        $player_id = $player['id'];
+    } else {
+        // Гравець не існує, створюємо нового
+        $stmt = $pdo->prepare("INSERT INTO players (username) VALUES (?)");
+        $stmt->execute([$username]);
+        $player_id = $pdo->lastInsertId();
     }
 
     // Перевіряємо чи гра існує і має місце
@@ -51,10 +58,17 @@ try {
         exit;
     }
 
-    // Додавання користувача
-    $stmt = $pdo->prepare("INSERT INTO players (username) VALUES (?)");
-    $stmt->execute([$username]);
-    $player_id = $pdo->lastInsertId();
+    // Перевіряємо, чи гравець вже в цій грі (уникнення дублікатів)
+    $stmt = $pdo->prepare("SELECT id FROM active_players WHERE game_id = ? AND player_id = ?");
+    $stmt->execute([$game_id, $player_id]);
+    if ($stmt->fetch()) {
+         $pdo->rollBack();
+         echo json_encode([
+             'success' => false,
+             'message' => 'Player already in this game'
+         ]);
+         exit;
+    }
 
     // Додаємо гравця до гри
     $stmt = $pdo->prepare("INSERT INTO active_players (game_id, player_id) VALUES (?, ?)");
@@ -77,14 +91,14 @@ try {
         'success' => true,
         'player_id' => $player_id,
         'game_id' => $game_id,
-        'message' => 'Player registered and joined game successfully'
+        'message' => 'Player joined game successfully'
     ]);
 
 } catch (PDOException $e) {
     $pdo->rollBack();
     http_response_code(500);
     echo json_encode([
-        'error' => 'Registration failed',
+        'error' => 'Failed to join game',
         'details' => $e->getMessage()
     ]);
 }

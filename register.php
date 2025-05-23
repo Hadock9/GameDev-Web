@@ -28,16 +28,6 @@ $username = trim($data['username']);
 try {
     $pdo->beginTransaction();
 
-    // Перевірка наявності користувача
-    $stmt = $pdo->prepare("SELECT id FROM players WHERE username = ?");
-    $stmt->execute([$username]);
-
-    if ($stmt->fetch()) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Username already exists']);
-        exit;
-    }
-
     // Додавання користувача
     $stmt = $pdo->prepare("INSERT INTO players (username) VALUES (?)");
     $stmt->execute([$username]);
@@ -69,4 +59,4 @@ try {
         'details' => $e->getMessage()
     ]);
 }
-?>
+?> 
